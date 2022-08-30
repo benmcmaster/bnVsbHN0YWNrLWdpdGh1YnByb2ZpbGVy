@@ -1,8 +1,9 @@
-import Nullstack, { NullstackClientContext } from 'nullstack'
-import { gitHub } from './services/github'
+import Nullstack from 'nullstack'
 import { Button } from './shared/Button'
 import H2 from './shared/H2'
 import { Input } from './shared/Input'
+import { ApplicationClientContext } from './types/ApplicationClientContext'
+import { ApplicationServerContext } from './types/ApplicationServerContext'
 
 interface HomeProps {}
 
@@ -13,11 +14,17 @@ interface GitHubUserData {
   languages: string[]
 }
 
+interface GetUserProps {
+  username: string
+}
+
 export class Home extends Nullstack<HomeProps> {
   search = ''
   user: GitHubUserData
 
-  static async getUser({ username }: { username: string }) {
+  static async getUser(context: GetUserProps) {
+    const { gitHub, username } = context as ApplicationServerContext<GetUserProps>
+
     const userData = await gitHub.getUser(username)
     const userRepoData = await gitHub.getUserRepos(username)
 
@@ -29,7 +36,7 @@ export class Home extends Nullstack<HomeProps> {
     } as GitHubUserData
   }
 
-  prepare({ project, page }: NullstackClientContext<HomeProps>) {
+  prepare({ project, page }: ApplicationClientContext<HomeProps>) {
     page.title = `${project.name}`
     page.description = `${project.name} was made with Nullstack`
   }
@@ -39,7 +46,7 @@ export class Home extends Nullstack<HomeProps> {
     this.user = await Home.getUser({ username: this.search })
   }
 
-  render({ worker }: NullstackClientContext) {
+  render({ worker }: ApplicationClientContext) {
     const loading = !!worker.queues.getUser?.length
 
     return (
