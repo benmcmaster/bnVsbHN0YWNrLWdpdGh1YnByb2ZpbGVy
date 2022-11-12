@@ -9,9 +9,11 @@ interface HomeProps {}
 
 interface GitHubUserData {
   name: string
+  login: string
   picture: string
   stars: number
   languages: string[]
+  repos: []
 }
 
 interface GetUserProps {
@@ -28,11 +30,37 @@ export class Home extends Nullstack<HomeProps> {
     const userData = await gitHub.getUser(username)
     const userRepoData = await gitHub.getUserRepos(username)
 
+    // Build an object to count the occurrences of a language in userRepoData[].
+    let languagesCount = {};
+    for (const element of userRepoData) {
+      // filter out language = null
+      if (element.language) {
+        if (languagesCount[element.language]) {
+          languagesCount[element.language] += 1;
+        } else {
+          languagesCount[element.language] = 1;
+        }
+      }
+    }
+
+    // Build and sort an array from the languagesCount object.
+    let sortedLanguages = [];
+    for (const element in languagesCount) {
+      sortedLanguages.push([element, languagesCount[element]]);
+    }
+    sortedLanguages.sort((a, b) => b[1] - a[1]);
+
+    // Build and sort an array of repo name and star count.
+    let repos = userRepoData.map((element) => [element.name, element.stargazers_count]);
+    repos.sort((a, b) => b[1] - a[1]);
+
     return {
       name: userData.name,
+      login: userData.login,
       picture: userData.avatar_url,
       stars: userRepoData.reduce((acc, repo) => acc + repo.stargazers_count, 0),
-      languages: ['// TODO:', 'list', 'of', 'langs', 'here', 'most used', 'to', 'least used'],
+      languages: sortedLanguages.map((element) => element[0]),
+      repos: repos,
     } as GitHubUserData
   }
 
@@ -90,10 +118,13 @@ export class Home extends Nullstack<HomeProps> {
             </section>
 
             <section>
-              // TODO: List of repos
+              <H2>List of repos</H2>
               <ul>
-                <li>repos with most stars first (order by stars desc)</li>
-                <li>on click open repos PRs by user</li>
+                {this.user.repos.map((repo) => (
+                  <li>
+                    <a href={"https://github.com/" + this.user.login + "/" + repo[0] + "/pulls"} target="_blank">{repo[0]} ({repo[1]} ⭐)</a>
+                  </li>
+                ))}
               </ul>
             </section>
           </section>
